@@ -27,7 +27,7 @@
 #include <libfreenect2/rgb_packet_processor.h>
 
 #include <opencv2/opencv.hpp>
-#include <jpeglib.h>
+#include <nv_headers/jpeglib.h>
 #include <iostream>
 #include <stdexcept>
 

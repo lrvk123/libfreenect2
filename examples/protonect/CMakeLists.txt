@@ -115,10 +115,10 @@ IF(ENABLE_TEGRA_JPEG AND EXISTS "/etc/nv_tegra_release")
     MESSAGE(FATAL_ERROR "Did not find Tegra JPEG library")
   ENDIF(NOT TEGRA_JPEG_LIBRARY)
 
-  INCLUDE_DIRECTORIES("${MY_DIR}/../../depends/nv_headers")
-  CHECK_SYMBOL_EXISTS(TEGRA_ACCELERATE "${MY_DIR}/../../depends/nv_headers/jconfig.h" TEGRA_JPEG_HEADERS)
+  INCLUDE_DIRECTORIES("${MY_DIR}/../../depends/gstjpeg_src")
+  CHECK_SYMBOL_EXISTS(TEGRA_ACCELERATE "${MY_DIR}/../../depends/gstjpeg_src/nv_headers/jconfig.h" TEGRA_JPEG_HEADERS)
   IF(NOT TEGRA_JPEG_HEADERS)
-    MESSAGE(FATAL_ERROR "Did not find headers for Tegra JPEG library in ${MY_DIR}/../../depends/nv_headers")
+    MESSAGE(FATAL_ERROR "Did not find headers for Tegra JPEG library in ${MY_DIR}/../../depends/gstjpeg_src/nv_headers")
   ENDIF(NOT TEGRA_JPEG_HEADERS)
 
   MESSAGE(STATUS "Found Tegra hardware accelerated JPEG support")
