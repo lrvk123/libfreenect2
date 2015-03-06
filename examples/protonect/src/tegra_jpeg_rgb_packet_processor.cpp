@@ -44,15 +44,6 @@ void my_error_exit(j_common_ptr info)
   abort_jpeg_error((j_decompress_ptr)info, buffer);
 }
 
-struct tegra_source_mgr
-{
-  struct jpeg_source_mgr pub;
-  void *_unknown;
-  // Nvidia libjpeg.so writes beyond struct end to here.
-  // It was difficult to track this down from random segfaults */
-  void *_buffer;
-};
-
 namespace libfreenect2
 {
 
@@ -81,10 +72,6 @@ public:
 
     jpeg_create_decompress(&dinfo);
 
-    // manually allocate to protect the tail (_buffer)
-    tegra_source_mgr *src = new tegra_source_mgr;
-    dinfo.src = &src->pub;
-
     newFrame();
 
     timing_acc = 0.0;
@@ -94,7 +81,6 @@ public:
 
   ~TegraJpegRgbPacketProcessorImpl()
   {
-    delete dinfo.src;
     jpeg_destroy_decompress(&dinfo);
   }
 
@@ -127,18 +113,8 @@ public:
 
   void decompress(unsigned char *buf, size_t len)
   {
-    // Tegra libjpeg.so allocates on dinfo.src->_buffer if it is NULL.
-    // Manually fill in this pointer to avoid allocation.
-    tegra_source_mgr *src = (tegra_source_mgr *)dinfo.src;
-    src->_buffer = buf;
     jpeg_mem_src(&dinfo, buf, len);
     jpeg_read_header(&dinfo, TRUE);
-
-    // Not clear if these have real effect on accelerated decoding.
-    // There might be no penalty enabling.
-    dinfo.dct_method = JDCT_FASTEST;
-    dinfo.do_fancy_upsampling = FALSE;
-    dinfo.do_block_smoothing = FALSE;
 
     if (dinfo.progressive_mode)
       abort_jpeg_error(&dinfo, "Tegra HW doesn't support progressive JPEG; use TurboJPEG");
@@ -153,11 +129,7 @@ public:
 
     jpeg_start_decompress(&dinfo);
 
-    // TegraJPEG jpeg_start_decompress does not reset output_scanline.
-    // We have to clear this otherwise dinfo is messed up for jpeg_read_scanlines
-    dinfo.output_scanline = 0;
-
-    // Hardware acceleration returns the entire surface at once.
+    // Hardware acceleration returns the entire surface in one go.
     // The normal way with software decoding uses jpeg_read_scanlines with loop.
     if (jpeg_read_scanlines(&dinfo, NULL, 0) != dinfo.output_height)
       abort_jpeg_error(&dinfo, "Incomplete decoding result");
