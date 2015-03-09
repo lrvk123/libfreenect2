@@ -34,10 +34,6 @@
 #include <libfreenect2/frame_listener.hpp>
 #include <libfreenect2/packet_processor.h>
 
-#ifdef LIBFREENECT2_WITH_CUDA_SUPPORT
-#include <vector_types.h>
-#endif
-
 namespace libfreenect2
 {
 
@@ -201,6 +197,11 @@ private:
 #endif // LIBFREENECT2_WITH_OPENCL_SUPPORT
 
 #ifdef LIBFREENECT2_WITH_CUDA_SUPPORT
+struct __attribute__((aligned(16))) Float4
+{
+    float x, y, z, w;
+};
+
 class CudaDepthPacketProcessorImpl;
 
 class LIBFREENECT2_API CudaDepthPacketProcessor : public DepthPacketProcessor
@@ -236,7 +237,7 @@ public:
   virtual ~CudaDepthPacketProcessorKernel();
   void initDevice(const int deviceId, size_t image_size_, size_t block);
   void generateOptions(const DepthPacketProcessor::Parameters &params, const DepthPacketProcessor::Config &config);
-  void loadTables(const short *lut11to16, const float4 *p0_table, const float *x_table, const float *z_table);
+  void loadTables(const short *lut11to16, const Float4 *p0_table, const float *x_table, const float *z_table);
   void run(const DepthPacket &packet, Frame *ir_frame, Frame *depth_frame, const DepthPacketProcessor::Config &config);
 private:
   CudaDepthPacketProcessorKernelImpl *impl_;

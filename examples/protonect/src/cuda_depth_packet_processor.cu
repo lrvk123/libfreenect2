@@ -575,7 +575,7 @@ public:
     block_size = block;
   }
 
-  void loadTables(const short *lut11to16, const float4 *p0_table, const float *x_table, const float *z_table)
+  void loadTables(const short *lut11to16, const Float4 *p0_table, const float *x_table, const float *z_table)
   {
     //Read only
     size_t buf_lut11to16_size = 2048 * sizeof(short);
@@ -735,7 +735,7 @@ void CudaDepthPacketProcessorKernel::initDevice(const int deviceId, size_t image
   impl_->initDevice(deviceId, image_size_, block);
 }
 
-void CudaDepthPacketProcessorKernel::loadTables(const short *lut11to16, const float4 *p0_table, const float *x_table, const float *z_table)
+void CudaDepthPacketProcessorKernel::loadTables(const short *lut11to16, const Float4 *p0_table, const float *x_table, const float *z_table)
 {
   impl_->loadTables(lut11to16, p0_table, x_table, z_table);
 }

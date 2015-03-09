@@ -73,7 +73,7 @@ public:
   short lut11to16[2048];
   float x_table[512 * 424];
   float z_table[512 * 424];
-  float4 p0_table[512 * 424];
+  Float4 p0_table[512 * 424];
   libfreenect2::DepthPacketProcessor::Config config;
   DepthPacketProcessor::Parameters params;
 
@@ -178,7 +178,7 @@ public:
   {
     for(int r = 0; r < 424; ++r)
     {
-      float4 *it = &p0_table[r * 512];
+      Float4 *it = &p0_table[r * 512];
       const uint16_t *it0 = &p0table->p0table0[r * 512];
       const uint16_t *it1 = &p0table->p0table1[r * 512];
       const uint16_t *it2 = &p0table->p0table2[r * 512];
