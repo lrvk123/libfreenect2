@@ -66,8 +66,9 @@ private:
   libfreenect2::DoubleBuffer buffer_;
   libfreenect2::Buffer work_buffer_;
 
-  uint32_t current_sequence_;
-  uint32_t current_subsequence_;
+  bool first_packet_;
+  uint32_t expect_sequence_;
+  uint32_t expect_subsequence_;
 };
 
 } /* namespace libfreenect2 */
