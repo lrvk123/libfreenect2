@@ -156,7 +156,7 @@ IF(ENABLE_CUDA AND CUDA_FOUND)
   IF(NOT MSVC)
     SET(CUDA_PIC_FLAGS "-Xcompiler -fPIC")
   ENDIF()
-  CUDA_COMPILE(CUDA_OBJECTS src/cuda_depth_packet_processor.cu OPTIONS ${CUDA_PIC_FLAGS})
+  CUDA_COMPILE(CUDA_OBJECTS src/cuda_depth_packet_processor.cu OPTIONS -use_fast_math ${CUDA_PIC_FLAGS})
 
   INCLUDE_DIRECTORIES(${CUDA_INCLUDE_DIRS})
 
