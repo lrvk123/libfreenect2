@@ -81,5 +81,20 @@ private:
   TurboJpegRgbPacketProcessorImpl *impl_;
 };
 
+#ifdef LIBFREENECT2_WITH_CUDA_JPEG_SUPPORT
+class CudaJpegRgbPacketProcessorImpl;
+
+class LIBFREENECT2_API CudaJpegRgbPacketProcessor : public RgbPacketProcessor
+{
+public:
+  CudaJpegRgbPacketProcessor();
+  virtual ~CudaJpegRgbPacketProcessor();
+protected:
+  virtual void process(const libfreenect2::RgbPacket &packet);
+private:
+  CudaJpegRgbPacketProcessorImpl *impl_;
+};
+#endif /* LIBFREENECT2_WITH_CUDA_JPEG_SUPPORT */
+
 } /* namespace libfreenect2 */
 #endif /* RGB_PACKET_PROCESSOR_H_ */
