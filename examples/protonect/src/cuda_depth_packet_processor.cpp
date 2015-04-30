@@ -75,7 +75,7 @@ struct PinnedFrame: Frame
   PinnedFrame(size_t width, size_t height, size_t bytes_per_pixel):
     Frame(width, height, bytes_per_pixel, false)
   {
-    cudaSafeCall(cudaHostAlloc(&data, width*height*bytes_per_pixel, cudaHostAllocMapped | cudaHostAllocPortable));
+    cudaSafeCall(cudaHostAlloc(&data, width*height*bytes_per_pixel, cudaHostAllocPortable));
   }
 
   ~PinnedFrame()
@@ -223,7 +223,6 @@ CudaDepthPacketProcessor::CudaDepthPacketProcessor(const int deviceId) :
 CudaDepthPacketProcessor::~CudaDepthPacketProcessor()
 {
   delete impl_;
-  cudaDeviceReset();
 }
 
 unsigned char *CudaDepthPacketProcessor::getPacketBuffer(size_t size)
@@ -237,7 +236,7 @@ unsigned char *CudaDepthPacketProcessor::getPacketBuffer(size_t size)
     impl_->packet_buffer_size = 0;
   }
 
-  cudaSafeCall(cudaHostAlloc(&impl_->packet_buffer, size, cudaHostAllocMapped | cudaHostAllocWriteCombined | cudaHostAllocPortable));
+  cudaSafeCall(cudaHostAlloc(&impl_->packet_buffer, size, cudaHostAllocWriteCombined | cudaHostAllocPortable));
   impl_->packet_buffer_size = size;
   return impl_->packet_buffer;
 }

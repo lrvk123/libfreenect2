@@ -533,8 +533,6 @@ public:
   {
     int deviceCount = 0;
 
-    cudaSafeCall(cudaSetDeviceFlags(cudaDeviceMapHost));
-
     cudaSafeCall(cudaGetDeviceCount(&deviceCount));
 
     int devId = -1;
@@ -690,20 +688,14 @@ public:
 
   void run(const DepthPacket &packet, Frame *ir_frame, Frame *depth_frame, const DepthPacketProcessor::Config &config)
   {
-    //size_t ir_frame_size = ir_frame->width * ir_frame->height * ir_frame->bytes_per_pixel;
-    //size_t depth_frame_size = depth_frame->width * depth_frame->height * depth_frame->bytes_per_pixel;
+    size_t ir_frame_size = ir_frame->width * ir_frame->height * ir_frame->bytes_per_pixel;
+    size_t depth_frame_size = depth_frame->width * depth_frame->height * depth_frame->bytes_per_pixel;
 
     cudaMemcpyAsync(buf_packet, packet.buffer, packet.buffer_length, cudaMemcpyHostToDevice);
 
-    float *buf_ir;
-    cudaSafeCall(cudaHostGetDevicePointer((void **)&buf_ir, (void *)ir_frame->data, 0));
-    float *buf_depth = this->buf_depth;
-    float *buf_filtered = this->buf_filtered;
-    cudaSafeCall(cudaHostGetDevicePointer(config.EnableEdgeAwareFilter ? (void **)&buf_filtered : (void **)&buf_depth, (void *)depth_frame->data, 0));
-
     processPixelStage1<<<grid_size, block_size>>>(buf_lut11to16, buf_z_table, buf_p0_table, buf_packet, buf_a, buf_b, buf_n, buf_ir);
 
-    //cudaMemcpyAsync(ir_frame->data, buf_ir, ir_frame_size, cudaMemcpyDeviceToHost);
+    cudaMemcpyAsync(ir_frame->data, buf_ir, ir_frame_size, cudaMemcpyDeviceToHost);
 
     if (config.EnableBilateralFilter)
     {
@@ -720,7 +712,7 @@ public:
       filterPixelStage2<<<grid_size, block_size>>>(buf_depth, buf_ir_sum, buf_edge_test, buf_filtered);
     }
 
-    //cudaMemcpyAsync(depth_frame->data, config.EnableEdgeAwareFilter ? buf_filtered : buf_depth, depth_frame_size, cudaMemcpyDeviceToHost);
+    cudaMemcpyAsync(depth_frame->data, config.EnableEdgeAwareFilter ? buf_filtered : buf_depth, depth_frame_size, cudaMemcpyDeviceToHost);
 
     cudaDeviceSynchronize();
 
