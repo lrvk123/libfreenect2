@@ -54,6 +54,21 @@ namespace libfreenect2
 class CudaJpegRgbPacketProcessorImpl
 {
 public:
+  struct PinnedFrame: Frame
+  {
+    PinnedFrame(size_t width, size_t height, size_t bytes_per_pixel):
+      Frame(width, height, bytes_per_pixel, false)
+    {
+      cudaSafeCall(cudaHostAlloc(&data, width*height*bytes_per_pixel, cudaHostAllocPortable));
+    }
+
+    ~PinnedFrame()
+    {
+      cudaFreeHost(data);
+      data = NULL;
+    }
+  };
+
   static const int WIDTH = 1920;
   static const int HEIGHT = 1080;
   static const int COMPS = 3;
@@ -117,7 +132,7 @@ public:
 
   void newFrame()
   {
-    frame = new Frame(1920, 1080, 3);
+    frame = new PinnedFrame(1920, 1080, 3);
   }
 
   void startTiming()
@@ -144,7 +159,7 @@ public:
     const NppLibraryVersion *ver = nppGetLibVersion();
     const char *gpuName = nppGetGpuName();
     std::cout << "[CudaJpegRgbPacketProcessor::initializeNpp] NPP " <<
-		ver->major << "." << ver->minor << "." << ver->build << " on GPU " << gpuName << std::endl;
+      ver->major << "." << ver->minor << "." << ver->build << " on GPU " << gpuName << std::endl;
 
     nppSafeCall(nppiDCTInitAlloc(&dct_state));
     cudaSafeCall(cudaMalloc(&d_quant_tables, COMPS * DCTSIZE2));
@@ -167,8 +182,8 @@ public:
     cudaSafeCall(cudaMallocPitch(&packed_image, &pitch, WIDTH*3, HEIGHT));
     packed_image_step = static_cast<Npp32s>(pitch);
 
-	int size;
-	nppiDecodeHuffmanSpecGetBufSize_JPEG(&size);
+    int size;
+    nppiDecodeHuffmanSpecGetBufSize_JPEG(&size);
     for (int i = 0; i < COMPS; i++) {
       huff_dc_table[i] = reinterpret_cast<NppiDecodeHuffmanSpec *>(new unsigned char[size]);
       huff_ac_table[i] = reinterpret_cast<NppiDecodeHuffmanSpec *>(new unsigned char[size]);
@@ -216,7 +231,7 @@ public:
       dinfo.restart_interval, dinfo.Ss, dinfo.Se, dinfo.Ah, dinfo.Al,
       h_dct, dct_step, huff_dc_table, huff_ac_table, src_size);
     for (int i = 0; i < COMPS; i++)
-      cudaMemcpy(d_dct[i], h_dct[i], dct_step[i] * src_size[i].height / DCTSIZE, cudaMemcpyHostToDevice);
+      cudaMemcpyAsync(d_dct[i], h_dct[i], dct_step[i] * src_size[i].height / DCTSIZE, cudaMemcpyHostToDevice);
 
     /* Apply inverse DCT */
     for (int i = 0; i < COMPS; i++)  {
@@ -226,7 +241,7 @@ public:
 
     nppSafeCall(nppiYUV422ToRGB_8u_P3C3R(src_image, src_image_step, packed_image, packed_image_step, src_size[0]));
 
-    //cudaSafeCall(cudaMemcpy2D(frame->data, WIDTH*3, packed_image, packed_image_step, WIDTH*3, HEIGHT, cudaMemcpyDeviceToHost));
+    cudaSafeCall(cudaMemcpy2DAsync(frame->data, WIDTH*3, packed_image, packed_image_step, WIDTH*3, HEIGHT, cudaMemcpyDeviceToHost));
 
     cudaDeviceSynchronize();
     cudaSafeCall(cudaGetLastError());
@@ -249,22 +264,22 @@ void CudaJpegRgbPacketProcessor::process(const RgbPacket &packet)
   if (listener_ == 0)
     return;
 
-	impl_->startTiming();
+  impl_->startTiming();
 
   try
   {
     impl_->decompress(packet.jpeg_buffer, packet.jpeg_buffer_length);
-		if(listener_->onNewFrame(Frame::Color, impl_->frame))
-		{
-			impl_->newFrame();
-		}
-	}
-	catch (const std::runtime_error &err)
-	{
-		std::cerr << "[CudaJpegRgbPacketProcessor::doProcess] Failed to decompress: '" << err.what() << "'" << std::endl;
-	}
+    if(listener_->onNewFrame(Frame::Color, impl_->frame))
+    {
+      impl_->newFrame();
+    }
+  }
+  catch (const std::runtime_error &err)
+  {
+    std::cerr << "[CudaJpegRgbPacketProcessor::doProcess] Failed to decompress: '" << err.what() << "'" << std::endl;
+  }
 
-	impl_->stopTiming();
+  impl_->stopTiming();
 }
 
 } /* namespace libfreenect2 */

@@ -70,24 +70,24 @@ bool loadBufferFromResources(const std::string &filename, unsigned char *buffer,
   return true;
 }
 
-struct PinnedFrame: Frame
-{
-  PinnedFrame(size_t width, size_t height, size_t bytes_per_pixel):
-    Frame(width, height, bytes_per_pixel, false)
-  {
-    cudaSafeCall(cudaHostAlloc(&data, width*height*bytes_per_pixel, cudaHostAllocPortable));
-  }
-
-  ~PinnedFrame()
-  {
-    cudaFreeHost(data);
-    data = NULL;
-  }
-};
-
 class CudaDepthPacketProcessorImpl
 {
 public:
+  struct PinnedFrame: Frame
+  {
+    PinnedFrame(size_t width, size_t height, size_t bytes_per_pixel):
+      Frame(width, height, bytes_per_pixel, false)
+    {
+      cudaSafeCall(cudaHostAlloc(&data, width*height*bytes_per_pixel, cudaHostAllocPortable));
+    }
+
+    ~PinnedFrame()
+    {
+      cudaFreeHost(data);
+      data = NULL;
+    }
+  };
+
   short lut11to16[2048];
   float x_table[512 * 424];
   float z_table[512 * 424];
