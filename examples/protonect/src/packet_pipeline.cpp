@@ -39,7 +39,11 @@ void BasePacketPipeline::initialize()
   rgb_parser_ = new RgbPacketStreamParser();
   depth_parser_ = new DepthPacketStreamParser();
 
+#ifdef LIBFREENECT2_WITH_CUDA_JPEG_SUPPORT
+  rgb_processor_ = new CudaJpegRgbPacketProcessor();
+#else
   rgb_processor_ = new TurboJpegRgbPacketProcessor();
+#endif
   depth_processor_ = createDepthPacketProcessor();
 
   async_rgb_processor_ = new AsyncPacketProcessor<RgbPacket>(rgb_processor_);
