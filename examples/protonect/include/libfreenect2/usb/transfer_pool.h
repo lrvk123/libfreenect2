@@ -27,7 +27,7 @@
 #ifndef TRANSFER_POOL_H_
 #define TRANSFER_POOL_H_
 
-#include <deque>
+#include <vector>
 #include <libusb.h>
 
 #include <libfreenect2/data_callback.h>
@@ -56,6 +56,15 @@ public:
 
   void setCallback(DataCallback *callback);
 protected:
+  struct Transfer
+  {
+    libusb_transfer *transfer;
+    TransferPool *pool;
+    bool stopped;
+    Transfer(libusb_transfer *transfer, TransferPool *pool):
+      transfer(transfer), pool(pool), stopped(true) {}
+  };
+
   void allocateTransfers(size_t num_transfers, size_t transfer_size);
 
   virtual libusb_transfer *allocateTransfer() = 0;
@@ -65,12 +74,12 @@ protected:
 
   DataCallback *callback_;
 private:
-  typedef std::deque<libusb_transfer *> TransferQueue;
+  typedef std::vector<Transfer> TransferQueue;
 
   libusb_device_handle *device_handle_;
   unsigned char device_endpoint_;
 
-  TransferQueue idle_transfers_, pending_transfers_;
+  TransferQueue transfers_;
   unsigned char *buffer_;
   size_t buffer_size_;
 
@@ -78,7 +87,7 @@ private:
 
   static void onTransferCompleteStatic(libusb_transfer *transfer);
 
-  void onTransferComplete(libusb_transfer *transfer);
+  void onTransferComplete(Transfer *transfer);
 };
 
 class BulkTransferPool : public TransferPool
