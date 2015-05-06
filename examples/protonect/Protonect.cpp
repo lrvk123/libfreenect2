@@ -31,6 +31,7 @@
 #include <opencv2/opencv.hpp>
 
 #include <libfreenect2/libfreenect2.hpp>
+#include <libfreenect2/registration.h>
 #include <libfreenect2/frame_listener_impl.h>
 #include <libfreenect2/threading.h>
 
@@ -73,6 +74,10 @@ int main(int argc, char *argv[])
   dev->setIrAndDepthFrameListener(&listener);
   dev->start();
 
+  libfreenect2::Freenect2Device::IrCameraParams irparam = dev->getIrCameraParams();
+  libfreenect2::Freenect2Device::ColorCameraParams ccp = dev->getColorCameraParams();
+  libfreenect2::Registration* reg = new libfreenect2::Registration(&irparam, &ccp);
+
   std::cout << "device serial: " << dev->getSerialNumber() << std::endl;
   std::cout << "device firmware: " << dev->getFirmwareVersion() << std::endl;
 
@@ -83,9 +88,54 @@ int main(int argc, char *argv[])
     libfreenect2::Frame *ir = frames[libfreenect2::Frame::Ir];
     libfreenect2::Frame *depth = frames[libfreenect2::Frame::Depth];
 
-    cv::imshow("rgb", cv::Mat(rgb->height, rgb->width, CV_8UC3, rgb->data));
-    cv::imshow("ir", cv::Mat(ir->height, ir->width, CV_32FC1, ir->data) / 20000.0f);
-    cv::imshow("depth", cv::Mat(depth->height, depth->width, CV_32FC1, depth->data) / 4500.0f);
+
+    cv::Mat rgbMat = cv::Mat(rgb->height, rgb->width, CV_8UC3, rgb->data);
+    cv::Mat depthMat = cv::Mat(depth->height, depth->width, CV_32FC1, depth->data);
+
+    cv::Mat colorRegistered = cv::Mat::zeros(depth->height, depth->width, CV_8UC3);
+    cv::Mat depthRegistered = cv::Mat::ones(rgb->height, rgb->width, CV_32FC1)*65536.0f;
+    const float DEPTH_FILTER_TOLERANCE = 0.01f;//allowed depth noise percentage
+
+    for(int x = 0; x < 512; x++)
+    {
+      for(int y = 0; y < 424; y++)
+      {
+        const float &z = depthMat.at<float>(y, x);
+        if(z == 0)
+          continue;
+        float cx, cy;
+        reg->apply(x, y, z, cx, cy);
+        if(cx < 0 || cy < 0 || cx >= 1920 || cy >= 1080)
+          continue;
+        float &min = depthRegistered.at<float>(cy, cx);
+        if(min > z)
+          min = z;
+      }
+    }
+
+    cv::Mat kernel = cv::getStructuringElement(cv::MORPH_RECT, cv::Size(5,3));
+    cv::erode(depthRegistered, depthRegistered, kernel);
+
+    for(int x = 0; x < 512; x++)
+    {
+      for(int y = 0; y < 424; y++)
+      {
+        const float &z = depthMat.at<float>(y, x);
+        if(z == 0)
+          continue;
+        float cx, cy;
+        reg->apply(x, y, z, cx, cy);
+        if(cx < 0 || cy < 0 || cx >= 1920 || cy >= 1080)
+          continue;
+        const float &min = depthRegistered.at<float>(cy, cx);
+        if ((z - min)/z > DEPTH_FILTER_TOLERANCE)
+          continue;
+        colorRegistered.at<cv::Vec3b>(y, x) = rgbMat.at<cv::Vec3b>(cy, cx);
+      }
+    }
+
+    cv::imshow("depth", depthMat/4500.0f);
+    cv::imshow("color_registered", colorRegistered);
 
     int key = cv::waitKey(1);
     protonect_shutdown = protonect_shutdown || (key > 0 && ((key & 0xFF) == 27)); // shutdown on escape
