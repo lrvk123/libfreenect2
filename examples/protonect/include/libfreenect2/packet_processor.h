@@ -27,8 +27,18 @@
 #ifndef PACKET_PROCESSOR_H_
 #define PACKET_PROCESSOR_H_
 
+#include <stddef.h>
+
 namespace libfreenect2
 {
+
+struct LIBFREENECT2_API Buffer
+{
+  size_t capacity;
+  size_t length;
+  unsigned char *data;
+  virtual ~Buffer() {}
+};
 
 template<typename PacketT>
 class PacketProcessor
@@ -38,6 +48,7 @@ public:
 
   virtual bool ready() { return true; }
   virtual void process(const PacketT &packet) = 0;
+  virtual PacketT *allocatePacket(size_t buffer_size) = 0;
 };
 
 template<typename PacketT>
@@ -48,6 +59,7 @@ public:
   virtual ~NoopPacketProcessor() {}
 
   virtual void process(const PacketT &packet) {}
+  virtual PacketT *allocatePacket(size_t buffer_size) { return 0; }
 };
 
 template<typename PacketT>

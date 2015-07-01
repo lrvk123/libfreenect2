@@ -84,7 +84,6 @@ SET(SOURCES
   src/transfer_pool.cpp
   src/event_loop.cpp
   src/usb_control.cpp
-  src/double_buffer.cpp
   src/frame_listener_impl.cpp
   src/packet_pipeline.cpp
   src/rgb_packet_stream_parser.cpp

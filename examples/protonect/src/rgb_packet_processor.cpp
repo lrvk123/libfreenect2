@@ -42,6 +42,33 @@ RgbPacketProcessor::~RgbPacketProcessor()
 {
 }
 
+struct RgbPacketBuffer : Buffer
+{
+  RgbPacketBuffer(size_t size)
+  {
+    capacity = size;
+    length = 0;
+    data = new unsigned char[size];
+  }
+
+  virtual ~RgbPacketBuffer()
+  {
+    delete[] data;
+  }
+};
+
+RgbPacket::~RgbPacket()
+{
+  delete stream_buffer;
+}
+
+RgbPacket *RgbPacketProcessor::allocatePacket(size_t buffer_size)
+{
+  RgbPacket *packet = new RgbPacket();
+  packet->stream_buffer = new RgbPacketBuffer(buffer_size);
+  return packet;
+}
+
 void RgbPacketProcessor::setFrameListener(libfreenect2::FrameListener *listener)
 {
   listener_ = listener;

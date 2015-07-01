@@ -63,7 +63,7 @@ public:
 private:
   libfreenect2::BaseDepthPacketProcessor *processor_;
 
-  libfreenect2::DoubleBuffer buffer_;
+  libfreenect2::DoubleBuffer<DepthPacket*> buffer_;
   libfreenect2::Buffer work_buffer_;
 
   uint32_t current_sequence_;

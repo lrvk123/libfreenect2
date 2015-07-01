@@ -62,21 +62,33 @@ LIBFREENECT2_PACK(struct RgbPacketFooter {
 RgbPacketStreamParser::RgbPacketStreamParser() :
     processor_(noopProcessor<RgbPacket>())
 {
-  buffer_.allocate(1920*1080*3+sizeof(RgbPacket));
+  buffer_.front() = NULL;
+  buffer_.back() = NULL;
 }
 
 RgbPacketStreamParser::~RgbPacketStreamParser()
 {
+  delete buffer_.front();
+  delete buffer_.back();
 }
 
 void RgbPacketStreamParser::setPacketProcessor(BaseRgbPacketProcessor *processor)
 {
   processor_ = (processor != 0) ? processor : noopProcessor<RgbPacket>();
+
+  size_t buffer_size = 6*1024*1024;
+  delete buffer_.front();
+  delete buffer_.back();
+  buffer_.front() = processor_->allocatePacket(buffer_size);
+  buffer_.back() = processor_->allocatePacket(buffer_size);
 }
 
 void RgbPacketStreamParser::onDataReceived(unsigned char* buffer, size_t length)
 {
-  Buffer &fb = buffer_.front();
+  if(buffer_.front() == NULL)
+    return;
+
+  Buffer &fb = *buffer_.front()->stream_buffer;
 
   // package containing data
   if(length > 0)
@@ -141,10 +153,10 @@ void RgbPacketStreamParser::onDataReceived(unsigned char* buffer, size_t length)
       if(processor_->ready())
       {
         buffer_.swap();
-        Buffer &bb = buffer_.back();
+        Buffer &bb = *buffer_.back()->stream_buffer;
 
         RawRgbPacket *raw_packet = reinterpret_cast<RawRgbPacket *>(bb.data);
-        RgbPacket rgb_packet;
+        RgbPacket &rgb_packet = *buffer_.back();
         rgb_packet.sequence = raw_packet->sequence;
         rgb_packet.timestamp = footer->timestamp;
         rgb_packet.jpeg_buffer = raw_packet->jpeg_buffer;
@@ -159,7 +171,7 @@ void RgbPacketStreamParser::onDataReceived(unsigned char* buffer, size_t length)
       }
 
       // reset front buffer
-      buffer_.front().length = 0;
+      buffer_.front()->stream_buffer->length = 0;
     }
   }
 }

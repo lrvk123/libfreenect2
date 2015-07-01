@@ -76,6 +76,11 @@ public:
     }
     packet_condition_.notify_one();
   }
+
+  virtual PacketT *allocatePacket(size_t buffer_size)
+  {
+    return processor_->allocatePacket(buffer_size);
+  }
 private:
   PacketProcessorPtr processor_;
   bool current_packet_available_;

@@ -43,6 +43,10 @@ struct LIBFREENECT2_API DepthPacket
   uint32_t timestamp;
   unsigned char *buffer;
   size_t buffer_length;
+
+  Buffer *stream_buffer;
+
+  ~DepthPacket();
 };
 
 typedef PacketProcessor<DepthPacket> BaseDepthPacketProcessor;
@@ -100,6 +104,7 @@ public:
   DepthPacketProcessor();
   virtual ~DepthPacketProcessor();
 
+  virtual DepthPacket *allocatePacket(size_t buffer_size);
   virtual void setFrameListener(libfreenect2::FrameListener *listener);
   virtual void setConfiguration(const libfreenect2::DepthPacketProcessor::Config &config);
 

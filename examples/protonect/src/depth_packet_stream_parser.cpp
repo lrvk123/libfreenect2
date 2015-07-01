@@ -36,11 +36,11 @@ DepthPacketStreamParser::DepthPacketStreamParser() :
     current_sequence_(0),
     current_subsequence_(0)
 {
+  // 512x424 resolution, 11 bits per pixel, 8 bits per byte
   size_t single_image = 512*424*11/8;
 
-  buffer_.allocate((single_image) * 10);
-  buffer_.front().length = buffer_.front().capacity;
-  buffer_.back().length = buffer_.back().capacity;
+  buffer_.front() = NULL;
+  buffer_.back() = NULL;
 
   work_buffer_.data = new unsigned char[single_image];
   work_buffer_.capacity = single_image;
@@ -49,15 +49,25 @@ DepthPacketStreamParser::DepthPacketStreamParser() :
 
 DepthPacketStreamParser::~DepthPacketStreamParser()
 {
+  delete buffer_.front();
+  delete buffer_.back();
 }
 
 void DepthPacketStreamParser::setPacketProcessor(libfreenect2::BaseDepthPacketProcessor *processor)
 {
   processor_ = (processor != 0) ? processor : noopProcessor<DepthPacket>();
+
+  delete buffer_.front();
+  delete buffer_.back();
+  buffer_.front() = processor->allocatePacket(work_buffer_.capacity * 10);
+  buffer_.back() = processor->allocatePacket(work_buffer_.capacity * 10);
 }
 
 void DepthPacketStreamParser::onDataReceived(unsigned char* buffer, size_t in_length)
 {
+  if(buffer_.front() == NULL)
+    return;
+
   Buffer &wb = work_buffer_;
 
   if(in_length == 0)
@@ -103,11 +113,11 @@ void DepthPacketStreamParser::onDataReceived(unsigned char* buffer, size_t in_le
             {
               buffer_.swap();
 
-              DepthPacket packet;
+              DepthPacket &packet = *buffer_.back();
               packet.sequence = current_sequence_;
               packet.timestamp = footer->timestamp;
-              packet.buffer = buffer_.back().data;
-              packet.buffer_length = buffer_.back().length;
+              packet.buffer = packet.stream_buffer->data;
+              packet.buffer_length = packet.stream_buffer->length;
 
               processor_->process(packet);
             }
@@ -125,7 +135,7 @@ void DepthPacketStreamParser::onDataReceived(unsigned char* buffer, size_t in_le
           current_subsequence_ = 0;
         }
 
-        Buffer &fb = buffer_.front();
+        Buffer &fb = *buffer_.front()->stream_buffer;
 
         // set the bit corresponding to the subsequence number to 1
         current_subsequence_ |= 1 << footer->subsequence;

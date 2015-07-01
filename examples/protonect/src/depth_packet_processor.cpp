@@ -95,6 +95,33 @@ DepthPacketProcessor::~DepthPacketProcessor()
 {
 }
 
+struct DepthPacketBuffer : Buffer
+{
+  DepthPacketBuffer(size_t size)
+  {
+    capacity = size;
+    length = size;
+    data = new unsigned char[size];
+  }
+
+  virtual ~DepthPacketBuffer()
+  {
+    delete[] data;
+  }
+};
+
+DepthPacket::~DepthPacket()
+{
+  delete stream_buffer;
+}
+
+DepthPacket *DepthPacketProcessor::allocatePacket(size_t buffer_size)
+{
+  DepthPacket *packet = new DepthPacket();
+  packet->stream_buffer = new DepthPacketBuffer(buffer_size);
+  return packet;
+}
+
 void DepthPacketProcessor::setConfiguration(const libfreenect2::DepthPacketProcessor::Config &config)
 {
   config_ = config;

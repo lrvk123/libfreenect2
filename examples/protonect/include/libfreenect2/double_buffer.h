@@ -27,38 +27,37 @@
 #ifndef DOUBLE_BUFFER_H_
 #define DOUBLE_BUFFER_H_
 
-#include <stddef.h>
 #include <libfreenect2/config.h>
 
 namespace libfreenect2
 {
 
-struct LIBFREENECT2_API Buffer
-{
-public:
-  size_t capacity;
-  size_t length;
-  unsigned char* data;
-};
-
+template <class Buffer>
 class LIBFREENECT2_API DoubleBuffer
 {
 public:
-  DoubleBuffer();
-  virtual ~DoubleBuffer();
+  DoubleBuffer() :
+    front_buffer_index_(0)
+  {
+  }
 
-  void allocate(size_t buffer_size);
+  void swap()
+  {
+    front_buffer_index_ = (front_buffer_index_ + 1) & 1;
+  }
 
-  void swap();
+  Buffer& front()
+  {
+    buffer_[front_buffer_index_ & 1];
+  }
 
-  Buffer& front();
-
-  Buffer& back();
+  Buffer& back()
+  {
+    buffer_[(front_buffer_index_ + 1) & 1];
+  }
 private:
   Buffer buffer_[2];
   unsigned char front_buffer_index_;
-
-  unsigned char* buffer_data_;
 };
 
 } /* namespace libfreenect2 */

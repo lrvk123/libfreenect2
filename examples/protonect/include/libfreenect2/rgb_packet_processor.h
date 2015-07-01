@@ -44,6 +44,10 @@ struct LIBFREENECT2_API RgbPacket
   uint32_t timestamp;
   unsigned char *jpeg_buffer;
   size_t jpeg_buffer_length;
+
+  Buffer *stream_buffer;
+
+  ~RgbPacket();
 };
 
 typedef PacketProcessor<RgbPacket> BaseRgbPacketProcessor;
@@ -54,6 +58,7 @@ public:
   RgbPacketProcessor();
   virtual ~RgbPacketProcessor();
 
+  virtual RgbPacket *allocatePacket(size_t buffer_size);
   virtual void setFrameListener(libfreenect2::FrameListener *listener);
 protected:
   libfreenect2::FrameListener *listener_;
